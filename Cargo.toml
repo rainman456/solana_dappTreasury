@@ -1,7 +1,6 @@
-
 [workspace]
 members = [
-    "treasury_vault", "."
+    "programs/treasury_vault",
 ]
 resolver = "2"
 

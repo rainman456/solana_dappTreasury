@@ -1,11 +1,16 @@
 image: gitpod/workspace-full
-
-# Commands that will run on workspace start
 tasks:
   - init: |
-      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-      sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+      # Ensure Bash is used
+      /bin/bash -c "curl --proto '=https' --tlsv1.2 -sSf https://release.solana.com/stable/install | bash"
+      # Update PATH for Solana CLI
+      export PATH="/home/gitpod/.local/share/solana/install/active_release/bin:$PATH"
+      # Install Rust
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
+      source $HOME/.cargo/env
+      # Install Anchor CLI
       cargo install --git https://github.com/coral-xyz/anchor anchor-cli --locked
-      npm install -g typescript
-      npm install @coral-xyz/anchor @solana/web3.js
-    command: anchor test --provider.cluster https://api.devnet.solana.com
+      # Install Node.js dependencies
+      npm install -g typescript @coral-xyz/anchor @solana/web3.js
+    command: |
+      echo "Solana CLI, Anchor, and dependencies installed. Run 'solana --version' to verify, then 'anchor test' to execute tests."

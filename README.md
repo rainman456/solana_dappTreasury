@@ -64,8 +64,9 @@ The program is designed to be secure, extensible, and reusable, serving as a val
 5. **Run Unit Tests**:
    - Execute tests using the provided script, which runs TypeScript tests across multiple test folders (`tests/`):
      ```bash
-     chmod +x run_tests.sh
-     ./run_tests.sh
+     chmod +x run_tests1.sh run_tests1.sh single_test.sh
+     ./run_tests1.sh or ./run_tests2.sh for tests1 and tests2 folder or  ./single_test.sh treasury_abc.ts for a
+     single unit test
      ```
    - Tests require a local Solana validator (`solana-test-validator`) or a Devnet connection.
 
@@ -82,8 +83,7 @@ The program is designed to be secure, extensible, and reusable, serving as a val
 - `clean.sh`: Script to clean build artifacts.
 - `programs/treasury_vault/`: Rust source code for the treasury vault program.
 - `tests/`: TypeScript unit tests for various functionalities.
-- `run_tests.sh`: Script to execute all unit tests.
-- `program_client/app.ts`: TypeScript client for interacting with the deployed program.
+- `run_tests1.sh`: Script to execute all unit tests..
 - `tsconfig.json` & `package.json`: Configuration for TypeScript and Node.js dependencies.
 
 ## Code Generation Prompt

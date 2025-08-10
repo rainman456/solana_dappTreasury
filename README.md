@@ -24,7 +24,7 @@ The program is designed to be reusable, secure, and extensible, making it a valu
 
 ### Prerequisites
 - **Rust**: Install Rust via `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`.
-- **Solana CLI**: Install with `sh -c "$(curl -sSfL https://release.solana.com/stable/install)"`.
+- **Solana CLI**: Install with `sh -c "$(curl -sSfL https://release.solana.com/stable/install)" or curl --proto '=https' --tlsv1.2 -sSfL https://solana-install.solana.workers.dev | bash`.
 - **Anchor Framework**: Install Anchor CLI: `cargo install --git https://github.com/coral-xyz/anchor anchor-cli --locked`.
 - **Node.js**: Required for TypeScript unit tests (version 16+ recommended).
 - **Código Platform**: Sign up at [codigo.ai](https://codigo.ai) for code generation and development.
@@ -53,23 +53,59 @@ The program is designed to be reusable, secure, and extensible, making it a valu
 
 ### Project Structure
 ```
-├── Anchor.toml          # Anchor configuration
-├── program              # Rust smart contract code
-│   ├── src
-│   │   ├── lib.rs       # Program entrypoint
-│   │   ├── initialize.rs # Initialize treasury
-│   │   ├── deposit.rs   # Deposit funds
-│   │   ├── schedule_payout.rs # Schedule payouts
-│   │   ├── execute_payout.rs  # Execute payouts
-│   │   ├── update_permissions.rs # Manage roles and whitelist
-│   │   ├── set_spending_limit.rs # Update spending limit
-│   │   ├── check_token_gated_access.rs # Token-gated withdrawal check
-├── program_client       # TypeScript client library
-│   ├── app.ts           # Client interaction script
-│   ├── tests
-│   │   ├── treasury.ts  # Unit tests
-├── tests                # Rust tests (optional)
-└── README.md            # This file
+├── Anchor.toml
+├── Cargo.lock
+├── Cargo.toml
+├── clean.sh
+├── gitignore
+├── package.json
+├── package-lock.json
+├── prettierignore
+├── programs
+│   └── treasury_vault
+│       ├── Cargo.toml
+│       └── src
+│           ├── constants.rs
+│           ├── error.rs
+│           ├── events.rs
+│           ├── instructions
+│           │   ├── add_treasury_user.rs
+│           │   ├── add_whitelisted_recipient.rs
+│           │   ├── cancel_payout.rs
+│           │   ├── deposit.rs
+│           │   ├── deposit_token.rs
+│           │   ├── execute_payout.rs
+│           │   ├── execute_token_payout.rs
+│           │   ├── initialize_treasury.rs
+│           │   ├── mod.rs
+│           │   ├── pause_treasury.rs
+│           │   ├── schedule_payout.rs
+│           │   ├── set_token_gate.rs
+│           │   ├── unpause_treasury.rs
+│           │   ├── update_treasury_config.rs
+│           │   ├── withdraw.rs
+│           │   └── withdraw_token.rs
+│           ├── lib.rs
+│           └── state
+│               ├── audit_log.rs
+│               ├── mod.rs
+│               ├── payout_schedule.rs
+│               ├── token_balance.rs
+│               ├── treasury.rs
+│               ├── treasury_user.rs
+│               └── whitelisted_recipient.rs
+├── README.md
+├── results.txt
+├── run_tests.sh
+├── tests
+│   ├── treasury_vault_edge_cases.ts
+│   ├── treasury_vault_pause_and_limits.ts
+│   ├── treasury_vault_payout.ts
+│   ├── treasury_vault_token_gate.ts
+│   ├── treasury_vault.ts
+│   └── treasury_vault_user_management.ts
+├── tsconfig.json
+└── yarn.lock
 ```
 
 ## Code Generation Prompt
@@ -85,7 +121,7 @@ The following CIDL prompt was used on the Código platform to generate the smart
 
 ## Edge Case Testing
 
-The unit tests (`program_client/tests/treasury.ts`) cover the following edge cases to ensure robustness:
+The unit tests (`/tests/`) cover the following edge cases to ensure robustness:
 - **Initialization**:
   - Invalid epoch duration (e.g., 0 seconds).
   - Non-signer attempting to initialize.
@@ -140,10 +176,10 @@ These features make the treasury more flexible, secure, and appealing for real-w
 [Insert your feedback on the Código platform here. Example: "Código’s AI code generation was intuitive and saved time by producing accurate Anchor boilerplate. The integrated Solana tools streamlined development, though I encountered minor issues with debugging complex logic. Suggestions include improving error messages in the CIDL generator."]
 
 ## Usage
-
-To interact with the deployed program:
-1. Update `program_client/app.ts` with the program ID from deployment.
-2. Run the client script: `node program_client/app.ts`.
+T
+There is no frontend client for now but if youwould like to interact with the deployed program:
+1. Create `program_client/app.ts`  from deployment.
+2. Create and run the client script: `node program_client/app.ts`.
 3. Example interactions:
    - Initialize: Set up the treasury with an admin, token mint, and spending limit.
    - Deposit: Transfer SOL or SPL tokens to the treasury.

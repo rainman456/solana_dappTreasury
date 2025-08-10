@@ -53,23 +53,59 @@ The program is designed to be reusable, secure, and extensible, making it a valu
 
 ### Project Structure
 ```
-├── Anchor.toml          # Anchor configuration
-├── program              # Rust smart contract code
-│   ├── src
-│   │   ├── lib.rs       # Program entrypoint
-│   │   ├── initialize.rs # Initialize treasury
-│   │   ├── deposit.rs   # Deposit funds
-│   │   ├── schedule_payout.rs # Schedule payouts
-│   │   ├── execute_payout.rs  # Execute payouts
-│   │   ├── update_permissions.rs # Manage roles and whitelist
-│   │   ├── set_spending_limit.rs # Update spending limit
-│   │   ├── check_token_gated_access.rs # Token-gated withdrawal check
-├── program_client       # TypeScript client library
-│   ├── app.ts           # Client interaction script
-│   ├── tests
-│   │   ├── treasury.ts  # Unit tests
-├── tests                # Rust tests (optional)
-└── README.md            # This file
+├── Anchor.toml
+├── Cargo.lock
+├── Cargo.toml
+├── clean.sh
+├── gitignore
+├── package.json
+├── package-lock.json
+├── prettierignore
+├── programs
+│   └── treasury_vault
+│       ├── Cargo.toml
+│       └── src
+│           ├── constants.rs
+│           ├── error.rs
+│           ├── events.rs
+│           ├── instructions
+│           │   ├── add_treasury_user.rs
+│           │   ├── add_whitelisted_recipient.rs
+│           │   ├── cancel_payout.rs
+│           │   ├── deposit.rs
+│           │   ├── deposit_token.rs
+│           │   ├── execute_payout.rs
+│           │   ├── execute_token_payout.rs
+│           │   ├── initialize_treasury.rs
+│           │   ├── mod.rs
+│           │   ├── pause_treasury.rs
+│           │   ├── schedule_payout.rs
+│           │   ├── set_token_gate.rs
+│           │   ├── unpause_treasury.rs
+│           │   ├── update_treasury_config.rs
+│           │   ├── withdraw.rs
+│           │   └── withdraw_token.rs
+│           ├── lib.rs
+│           └── state
+│               ├── audit_log.rs
+│               ├── mod.rs
+│               ├── payout_schedule.rs
+│               ├── token_balance.rs
+│               ├── treasury.rs
+│               ├── treasury_user.rs
+│               └── whitelisted_recipient.rs
+├── README.md
+├── results.txt
+├── run_tests.sh
+├── tests
+│   ├── treasury_vault_edge_cases.ts
+│   ├── treasury_vault_pause_and_limits.ts
+│   ├── treasury_vault_payout.ts
+│   ├── treasury_vault_token_gate.ts
+│   ├── treasury_vault.ts
+│   └── treasury_vault_user_management.ts
+├── tsconfig.json
+└── yarn.lock
 ```
 
 ## Code Generation Prompt

@@ -66,6 +66,7 @@ pub fn handler(
         target: Some(ctx.accounts.recipient.recipient),
         amount: payout_schedule.amount,
         timestamp: Clock::get()?.unix_timestamp,
+        token_mint: payout_schedule.token_mint, // Use the token mint from the payout schedule
     });
     
     Ok(())

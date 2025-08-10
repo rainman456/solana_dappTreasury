@@ -13,11 +13,12 @@ pub struct PayoutSchedule {
     pub created_by: Pubkey,           // 32 bytes
     pub treasury: Pubkey,             // 32 bytes
     pub index: u64,                   // 8 bytes
+    pub token_mint: Option<Pubkey>,   // 33 bytes (1 for Option + 32 for Pubkey)
     pub bump: u8,                     // 1 byte
 }
 
 impl PayoutSchedule {
-    pub const INIT_SPACE: usize = 32 + 8 + 8 + 1 + 8 + 8 + 1 + 32 + 32 + 8 + 1;
+    pub const INIT_SPACE: usize = 32 + 8 + 8 + 1 + 8 + 8 + 1 + 32 + 32 + 8 + 33 + 1;
     
     pub fn is_due(&self, current_time: i64) -> bool {
         if !self.is_active {

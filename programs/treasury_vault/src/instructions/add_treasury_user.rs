@@ -63,6 +63,7 @@ pub fn handler(
         target: Some(ctx.accounts.user.key()),
         amount: 0,
         timestamp: Clock::get()?.unix_timestamp,
+        token_mint: None, // Not token related
     });
     
     Ok(())

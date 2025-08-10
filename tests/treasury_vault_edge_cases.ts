@@ -3,6 +3,10 @@ import { Program } from "@coral-xyz/anchor";
 import { TreasuryVault } from "../target/types/treasury_vault";
 import { expect } from "chai";
 import { BN } from "bn.js";
+import { 
+  createMint, 
+  getOrCreateAssociatedTokenAccount,
+} from "@solana/spl-token";
 
 describe("treasury_vault_edge_cases", () => {
   // Configure the client to use the local cluster
@@ -28,6 +32,11 @@ describe("treasury_vault_edge_cases", () => {
   let treasurerUserPDA: anchor.web3.PublicKey;
   let recipient1PDA: anchor.web3.PublicKey;
   let recipient2PDA: anchor.web3.PublicKey;
+  
+  // Token variables
+  let tokenMint: anchor.web3.PublicKey;
+  let recipient1TokenAccount: anchor.web3.PublicKey;
+  let recipient2TokenAccount: anchor.web3.PublicKey;
 
   before(async () => {
     // Airdrop SOL to all accounts for testing
@@ -82,6 +91,32 @@ describe("treasury_vault_edge_cases", () => {
       ],
       program.programId
     );
+    
+    // Create token mint for testing token gate functionality
+    tokenMint = await createMint(
+      provider.connection,
+      admin,
+      admin.publicKey,
+      null,
+      0 // 0 decimals for simplicity
+    );
+    
+    // Create token accounts for recipients
+    const recipient1TokenAccountInfo = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      admin,
+      tokenMint,
+      recipient1.publicKey
+    );
+    recipient1TokenAccount = recipient1TokenAccountInfo.address;
+    
+    const recipient2TokenAccountInfo = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      admin,
+      tokenMint,
+      recipient2.publicKey
+    );
+    recipient2TokenAccount = recipient2TokenAccountInfo.address;
   });
 
   describe("Setup", () => {
@@ -379,6 +414,8 @@ describe("treasury_vault_edge_cases", () => {
             recipient: recipient1PDA,
             payoutSchedule: payoutSchedulePDA,
             recipientWallet: recipient1.publicKey,
+            recipientTokenAccount: recipient1TokenAccount,
+            tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
           })
           .signers([admin])

@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Token};
 
 use crate::{
     constants::*,
@@ -49,7 +50,15 @@ pub struct SchedulePayout<'info> {
     )]
     pub payout_schedule: Account<'info, PayoutSchedule>,
     
+    /// Optional token mint for SPL token payouts
+    /// CHECK: This is validated in the handler
+    pub token_mint: Option<AccountInfo<'info>>,
+    
+    /// Optional token program for SPL token payouts
+    pub token_program: Option<Program<'info, Token>>,
+    
     pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
 }
 
 pub fn handler(
@@ -74,6 +83,20 @@ pub fn handler(
     let treasury = &mut ctx.accounts.treasury;
     let recipient = &ctx.accounts.recipient;
     
+    // Get token mint if provided
+    let token_mint_pubkey = if let Some(token_mint) = &ctx.accounts.token_mint {
+        // If token mint is provided, token program must also be provided
+        require!(ctx.accounts.token_program.is_some(), ErrorCode::TokenProgramRequired);
+        
+        // Validate token mint
+        // We don't need to deserialize it, just check that it's a valid account
+        require!(!token_mint.data_is_empty(), ErrorCode::InvalidTokenMint);
+        
+        Some(token_mint.key())
+    } else {
+        None
+    };
+    
     // Initialize payout schedule
     payout_schedule.recipient = recipient.recipient;
     payout_schedule.amount = amount;
@@ -85,6 +108,7 @@ pub fn handler(
     payout_schedule.created_by = ctx.accounts.authority.key();
     payout_schedule.treasury = treasury.key();
     payout_schedule.index = index;
+    payout_schedule.token_mint = token_mint_pubkey;
     payout_schedule.bump = ctx.bumps.payout_schedule;
     
     // Create audit log
@@ -95,6 +119,7 @@ pub fn handler(
         target: Some(recipient.recipient),
         amount,
         timestamp: current_time,
+        token_mint: token_mint_pubkey,
     });
     
     Ok(())

@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Token, TokenAccount};
 
 use crate::{
     constants::*,
@@ -8,6 +9,7 @@ use crate::{
 };
 
 #[derive(Accounts)]
+#[instruction(timestamp: i64)]
 pub struct ExecutePayout<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -15,7 +17,8 @@ pub struct ExecutePayout<'info> {
     #[account(
         mut,
         seeds = [TREASURY_SEED],
-        bump = treasury.bump
+        bump = treasury.bump,
+        constraint = !treasury.is_paused @ ErrorCode::TreasuryPaused
     )]
     pub treasury: Account<'info, Treasury>,
     
@@ -43,7 +46,8 @@ pub struct ExecutePayout<'info> {
             &payout_schedule.index.to_le_bytes()
         ],
         bump = payout_schedule.bump,
-        constraint = payout_schedule.is_active @ ErrorCode::PayoutNotActive
+        constraint = payout_schedule.is_active @ ErrorCode::PayoutNotActive,
+        constraint = payout_schedule.token_mint.is_none() @ ErrorCode::InvalidTokenMint // Ensure this is a SOL payout
     )]
     pub payout_schedule: Account<'info, PayoutSchedule>,
     
@@ -53,6 +57,13 @@ pub struct ExecutePayout<'info> {
         constraint = recipient_wallet.key() == recipient.recipient @ ErrorCode::RecipientNotWhitelisted
     )]
     pub recipient_wallet: UncheckedAccount<'info>,
+    
+    /// Token account owned by the recipient, only required if token gate is enabled
+    /// CHECK: We manually verify this account in the handler
+    pub recipient_token_account: UncheckedAccount<'info>,
+    
+    /// Token program, only required if token gate is enabled
+    pub token_program: Program<'info, Token>,
     
     pub system_program: Program<'info, System>,
 }
@@ -81,6 +92,30 @@ pub fn handler(
     let treasury_bump = ctx.accounts.treasury.bump;
     let payout_amount = payout_schedule.amount;
     
+    // Check if token gate is enabled and validate token ownership
+    if let Some(gate_token_mint) = ctx.accounts.treasury.gate_token_mint {
+        // Check if the recipient token account is valid
+        let recipient_token_account_info = ctx.accounts.recipient_token_account.to_account_info();
+        
+        // Skip validation if the account is empty (zero data)
+        if !recipient_token_account_info.data_is_empty() {
+            // Deserialize the token account
+            let recipient_token_account = TokenAccount::try_deserialize(
+                &mut &recipient_token_account_info.data.borrow()[..]
+            )?;
+            
+            // Verify the recipient owns the token account and it's for the correct mint
+            require!(
+                recipient_token_account.owner == ctx.accounts.recipient_wallet.key() &&
+                recipient_token_account.mint == gate_token_mint &&
+                recipient_token_account.amount > 0,
+                ErrorCode::TokenGateCheckFailed
+            );
+        } else {
+            return Err(ErrorCode::TokenGateCheckFailed.into());
+        }
+    }
+    
     // Check if treasury has enough funds
     require!(
         ctx.accounts.treasury.total_funds >= payout_amount,
@@ -89,9 +124,30 @@ pub fn handler(
     
     // Check if this would exceed the spending limit for the current epoch
     let treasury = &mut ctx.accounts.treasury;
+    let previous_epoch_spending = treasury.epoch_spending;
     let current_epoch_start = if current_time >= treasury.last_epoch_start + treasury.epoch_duration as i64 {
         // We're in a new epoch, reset the epoch_spending
         treasury.epoch_spending = 0;
+        
+        // Emit spending limit reset event
+        emit!(SpendingLimitResetEvent {
+            treasury: treasury_key,
+            previous_epoch_spending,
+            timestamp: current_time,
+            token_mint: None, // SOL payout
+        });
+        
+        // Also emit the treasury event for better tracking
+        emit!(TreasuryEvent {
+            action: AuditAction::SpendingLimitReset as u8,
+            treasury: treasury_key,
+            initiator: ctx.accounts.authority.key(),
+            target: None,
+            amount: previous_epoch_spending,
+            timestamp: current_time,
+            token_mint: None, // SOL payout
+        });
+        
         current_time
     } else {
         treasury.last_epoch_start
@@ -146,7 +202,15 @@ pub fn handler(
         payout_schedule.is_active = false;
     }
     
-    // Create audit log
+    // Emit events
+    emit!(WithdrawEvent {
+        admin: ctx.accounts.authority.key(),
+        recipient: ctx.accounts.recipient.recipient,
+        amount: payout_amount,
+        timestamp: current_time,
+        token_mint: None, // SOL payout
+    });
+    
     emit!(TreasuryEvent {
         action: AuditAction::ExecutePayout as u8,
         treasury: treasury_key,
@@ -154,6 +218,7 @@ pub fn handler(
         target: Some(ctx.accounts.recipient.recipient),
         amount: payout_amount,
         timestamp: current_time,
+        token_mint: None, // SOL payout
     });
     
     Ok(())

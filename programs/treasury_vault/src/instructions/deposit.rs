@@ -58,6 +58,9 @@ pub fn handler(
     let current_time = Clock::get()?.unix_timestamp;
     require!(timestamp <= current_time, crate::error::ErrorCode::InvalidTimestamp);
 
+    // Get treasury key before mutable borrow
+    let treasury_key = ctx.accounts.treasury.key();
+
     // Transfer SOL from depositor to treasury
     let cpi_context = CpiContext::new(
         ctx.accounts.system_program.to_account_info(),
@@ -76,9 +79,11 @@ pub fn handler(
     // Create audit log entry
     let audit_log = &mut ctx.accounts.audit_log;
     audit_log.action = AuditAction::Deposit as u8;
+    audit_log.treasury = treasury_key;
     audit_log.initiator = ctx.accounts.depositor.key();
     audit_log.amount = amount;
     audit_log.timestamp = timestamp;
+    audit_log.token_mint = None; // Native SOL deposit
     audit_log.bump = ctx.bumps.audit_log;
 
     // Emit event
@@ -86,6 +91,18 @@ pub fn handler(
         depositor: ctx.accounts.depositor.key(),
         amount,
         timestamp,
+        token_mint: None, // Native SOL deposit
+    });
+    
+    // Emit treasury event
+    emit!(TreasuryEvent {
+        action: AuditAction::Deposit as u8,
+        treasury: treasury_key,
+        initiator: ctx.accounts.depositor.key(),
+        target: None,
+        amount,
+        timestamp,
+        token_mint: None, // Native SOL deposit
     });
 
     Ok(())

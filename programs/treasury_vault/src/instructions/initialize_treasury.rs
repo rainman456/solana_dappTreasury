@@ -51,6 +51,7 @@ pub fn handler(
 ) -> Result<()> {
     // Validate inputs
     require!(epoch_duration > 0, ErrorCode::InvalidEpochDuration);
+    require!(epoch_duration >= MIN_EPOCH_DURATION, ErrorCode::EpochDurationTooShort);
     require!(spending_limit > 0, ErrorCode::InvalidSpendingLimit);
 
     let treasury = &mut ctx.accounts.treasury;
@@ -61,6 +62,8 @@ pub fn handler(
     treasury.last_epoch_start = Clock::get()?.unix_timestamp;
     treasury.epoch_spending = 0;
     treasury.next_payout_index = 0;
+    treasury.is_paused = false; // Initialize as unpaused
+    treasury.gate_token_mint = None; // Initialize with no token gate
     treasury.bump = ctx.bumps.treasury;
     
     // Initialize admin user

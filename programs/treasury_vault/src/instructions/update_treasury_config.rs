@@ -47,11 +47,35 @@ pub fn handler(
     spending_limit: Option<u64>,
 ) -> Result<()> {
     let treasury = &mut ctx.accounts.treasury;
+    let current_time = Clock::get()?.unix_timestamp;
 
     // Update epoch duration if provided
     if let Some(duration) = epoch_duration {
         require!(duration > 0, ErrorCode::InvalidEpochDuration);
+        require!(duration >= MIN_EPOCH_DURATION, ErrorCode::EpochDurationTooShort);
+        
+        let old_duration = treasury.epoch_duration;
         treasury.epoch_duration = duration;
+        
+        // Emit epoch duration updated event
+        emit!(EpochDurationUpdatedEvent {
+            admin: ctx.accounts.authority.key(),
+            treasury: treasury.key(),
+            old_duration,
+            new_duration: duration,
+            timestamp: current_time,
+        });
+        
+        // Also emit the treasury event for better tracking
+        emit!(TreasuryEvent {
+            action: AuditAction::EpochDurationUpdated as u8,
+            treasury: treasury.key(),
+            initiator: ctx.accounts.authority.key(),
+            target: None,
+            amount: duration,
+            timestamp: current_time,
+            token_mint: None, // Not token related
+        });
     }
 
     // Update spending limit if provided
@@ -60,21 +84,11 @@ pub fn handler(
         treasury.spending_limit = limit;
     }
 
-    // Emit event
+    // Emit general config updated event
     emit!(TreasuryConfigUpdatedEvent {
         admin: ctx.accounts.authority.key(),
         epoch_duration: treasury.epoch_duration,
         spending_limit: treasury.spending_limit,
-    });
-    
-    // Also emit the new treasury event for better tracking
-    emit!(TreasuryEvent {
-        action: AuditAction::AddUser as u8, // Reusing AddUser as a ConfigUpdate action
-        treasury: treasury.key(),
-        initiator: ctx.accounts.authority.key(),
-        target: None,
-        amount: 0,
-        timestamp: Clock::get()?.unix_timestamp,
     });
 
     Ok(())

@@ -33,6 +33,14 @@ pub mod treasury_vault {
     ) -> Result<()> {
         instructions::deposit::handler(ctx, amount, timestamp)
     }
+    
+    pub fn deposit_token(
+        ctx: Context<DepositToken>,
+        amount: u64,
+        timestamp: i64,
+    ) -> Result<()> {
+        instructions::deposit_token::handler(ctx, amount, timestamp)
+    }
 
     pub fn withdraw(
         ctx: Context<Withdraw>,
@@ -40,6 +48,14 @@ pub mod treasury_vault {
         timestamp: i64,
     ) -> Result<()> {
         instructions::withdraw::handler(ctx, amount, timestamp)
+    }
+    
+    pub fn withdraw_token(
+        ctx: Context<WithdrawToken>,
+        amount: u64,
+        timestamp: i64,
+    ) -> Result<()> {
+        instructions::withdraw_token::handler(ctx, amount, timestamp)
     }
 
     pub fn update_treasury_config(
@@ -82,9 +98,34 @@ pub mod treasury_vault {
         instructions::execute_payout::handler(ctx, timestamp)
     }
     
+    pub fn execute_token_payout(
+        ctx: Context<ExecuteTokenPayout>,
+        timestamp: i64,
+    ) -> Result<()> {
+        instructions::execute_token_payout::handler(ctx, timestamp)
+    }
+    
     pub fn cancel_payout(
         ctx: Context<CancelPayout>,
     ) -> Result<()> {
         instructions::cancel_payout::handler(ctx)
+    }
+    
+    pub fn pause_treasury(
+        ctx: Context<PauseTreasury>,
+    ) -> Result<()> {
+        instructions::pause_treasury::handler(ctx)
+    }
+    
+    pub fn unpause_treasury(
+        ctx: Context<UnpauseTreasury>,
+    ) -> Result<()> {
+        instructions::unpause_treasury::handler(ctx)
+    }
+    
+    pub fn set_token_gate(
+        ctx: Context<SetTokenGate>,
+    ) -> Result<()> {
+        instructions::set_token_gate::handler(ctx)
     }
 }

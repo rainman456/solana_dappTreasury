@@ -40,4 +40,30 @@ pub enum ErrorCode {
     PayoutNotActive,
     #[msg("Recipient is not active")]
     RecipientNotActive,
+    #[msg("Treasury is paused")]
+    TreasuryPaused,
+    #[msg("Treasury is already paused")]
+    TreasuryAlreadyPaused,
+    #[msg("Treasury is already unpaused")]
+    TreasuryAlreadyUnpaused,
+    #[msg("Only admin can pause or unpause the treasury")]
+    UnauthorizedPauseAction,
+    #[msg("Epoch duration must be at least the minimum duration")]
+    EpochDurationTooShort,
+    #[msg("Recipient does not hold the required token")]
+    TokenGateCheckFailed,
+    #[msg("Token program is required for token-gated payouts")]
+    TokenProgramRequired,
+    #[msg("Invalid token account owner")]
+    InvalidTokenAccountOwner,
+    #[msg("Invalid token mint")]
+    InvalidTokenMint,
+    #[msg("Token account has insufficient balance")]
+    InsufficientTokenBalance,
+    #[msg("Token balance account not found")]
+    TokenBalanceNotFound,
+    #[msg("Treasury token account not found")]
+    TreasuryTokenAccountNotFound,
+    #[msg("Invalid token account")]
+    InvalidTokenAccount,
 }

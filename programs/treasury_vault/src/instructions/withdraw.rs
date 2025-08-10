@@ -85,9 +85,30 @@ pub fn handler(
 
     // Check if we need to reset the epoch
     let treasury = &mut ctx.accounts.treasury;
+    let previous_epoch_spending = treasury.epoch_spending;
+    
     if current_time - treasury.last_epoch_start > treasury.epoch_duration as i64 {
         treasury.last_epoch_start = current_time;
         treasury.epoch_spending = 0;
+        
+        // Emit spending limit reset event
+        emit!(SpendingLimitResetEvent {
+            treasury: treasury_key,
+            previous_epoch_spending,
+            timestamp: current_time,
+            token_mint: None, // SOL withdrawal
+        });
+        
+        // Also emit the treasury event for better tracking
+        emit!(TreasuryEvent {
+            action: AuditAction::SpendingLimitReset as u8,
+            treasury: treasury_key,
+            initiator: ctx.accounts.authority.key(),
+            target: None,
+            amount: previous_epoch_spending,
+            timestamp: current_time,
+            token_mint: None, // SOL withdrawal
+        });
     }
 
     // Check if withdrawal would exceed spending limit for the current epoch
@@ -128,9 +149,11 @@ pub fn handler(
     // Create audit log entry
     let audit_log = &mut ctx.accounts.audit_log;
     audit_log.action = AuditAction::Withdraw as u8;
+    audit_log.treasury = treasury_key;
     audit_log.initiator = ctx.accounts.authority.key();
     audit_log.amount = amount;
     audit_log.timestamp = timestamp;
+    audit_log.token_mint = None; // SOL withdrawal
     audit_log.bump = ctx.bumps.audit_log;
 
     // Emit event
@@ -139,6 +162,7 @@ pub fn handler(
         recipient: ctx.accounts.recipient.key(),
         amount,
         timestamp,
+        token_mint: None, // SOL withdrawal
     });
     
     // Also emit the new treasury event for better tracking
@@ -149,6 +173,7 @@ pub fn handler(
         target: Some(ctx.accounts.recipient.key()),
         amount,
         timestamp,
+        token_mint: None, // SOL withdrawal
     });
 
     Ok(())

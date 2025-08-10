@@ -2,126 +2,100 @@
 
 ## Project Overview
 
-This project is a Solana smart contract (program) developed for the **Código DevQuest**, a collaboration between Código and Superteam Nigeria. The program implements an **on-chain treasury vault** to manage SOL and SPL tokens, designed for DAOs, guilds, or communities to handle recurring contributor payments, community grants, or time-locked funding rounds. Built using the Anchor framework and Código’s AI-powered development platform, the program includes robust features, comprehensive unit tests, and creative enhancements to ensure reusability and scalability.
+This project is a Solana smart contract developed for the Código DevQuest, a collaboration between Código and Superteam Nigeria. The program implements an on-chain treasury vault to manage SOL and SPL tokens, tailored for DAOs, guilds, or communities to handle recurring contributor payments, community grants, or time-locked funding rounds. Built using the Anchor framework and Código’s AI-powered development platform, the program offers robust features, comprehensive unit tests, and creative enhancements to ensure reusability and scalability.
 
 ### Features
-- **Treasury Management**: Stores SOL or SPL tokens in a secure vault with programmable payout logic.
+- **Treasury Management**: Securely stores SOL or SPL tokens with programmable payout logic.
 - **Deposits**: Allows any user to deposit funds into the treasury.
-- **Scheduled Payouts**: Supports one-time or recurring payouts to whitelisted recipients, with admin or treasurer approval.
-- **Role-Based Permissions**: Restricts sensitive actions (e.g., payouts, configuration) to admin or treasurer roles.
+- **Scheduled Payouts**: Supports one-time or recurring payouts to whitelisted recipients, requiring admin or treasurer approval.
+- **Role-Based Permissions**: Restricts sensitive actions (e.g., payouts, configuration changes) to admin or treasurer roles.
 - **Spending Limits**: Enforces a maximum spending limit per epoch, with automatic resets.
-- **Recipient Whitelisting**: Restricts payouts to approved addresses.
+- **Recipient Whitelisting**: Limits payouts to approved addresses.
 - **Token-Gated Access**: Optionally requires users to hold a specific SPL token for withdrawals.
 - **Creative Features**:
-  - **Pause/Unpause**: Admin can freeze/unfreeze payouts for security (e.g., during a suspected attack).
+  - **Pause/Unpause**: Enables admins to freeze or resume payouts for security (e.g., during suspected attacks).
   - **Audit Logging**: Records all treasury actions (deposits, payouts, permission changes) for transparency.
-  - **Dynamic Epoch Adjustment**: Allows admins to update epoch duration via a governance-like mechanism.
+  - **Dynamic Epoch Adjustment**: Allows admins to modify epoch duration via a governance-like mechanism.
 - **Unit Tests**: Comprehensive TypeScript tests verify all functionality, including edge cases.
 
-The program is designed to be reusable, secure, and extensible, making it a valuable template for Solana projects managing community funds.
+The program is designed to be secure, extensible, and reusable, serving as a valuable template for Solana projects managing community funds.
 
 ## Setup Instructions
 
 ### Prerequisites
-- **Rust**: Install Rust via `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`.
-- **Solana CLI**: Install with `sh -c "$(curl -sSfL https://release.solana.com/stable/install)" or curl --proto '=https' --tlsv1.2 -sSfL https://solana-install.solana.workers.dev | bash`.
-- **Anchor Framework**: Install Anchor CLI: `cargo install --git https://github.com/coral-xyz/anchor anchor-cli --locked`.
-- **Node.js**: Required for TypeScript unit tests (version 16+ recommended).
-- **Código Platform**: Sign up at [codigo.ai](https://codigo.ai) for code generation and development.
-- **Solana Wallet**: A Solana wallet with a public address for deployment and testing (Devnet recommended).
+- A Solana wallet with a public address for deployment and testing (Devnet recommended).
+- Internet connection for downloading dependencies.
 
 ### Installation
 1. **Clone the Repository**:
    ```bash
-   git clone <your-github-repo-url>
-   cd <repository-name>
+   git clone https://github.com/rainman456/solana_dappTreasury.git
+   cd solana_dappTreasury
    ```
-2. **Install Dependencies**:
-   - Install Anchor dependencies: `cargo build`.
-   - Install Node.js dependencies for tests: `npm install` in the `program_client` directory.
+
+2. **Run Setup Script**:
+   - For **Linux** (including WSL on Windows) or **macOS**:
+     ```bash
+     chmod +x setup.sh
+     ./setup.sh
+     ```
+   - For **Windows**:
+     - Install WSL (Windows Subsystem for Linux) by running `wsl --install` in PowerShell, then use Ubuntu.
+     - In the Ubuntu terminal, run the commands above.
+   - The `setup.sh` script installs Rust, Solana CLI, Anchor CLI (version 0.31.1), Node.js, and Yarn, configuring the environment for Solana development.
+
 3. **Set Up Solana Environment**:
-   - Configure Solana CLI for Devnet: `solana config set --url https://api.devnet.solana.com`.
-   - Ensure you have a keypair: `solana-keygen new` (or use an existing one).
+   - Configure Solana CLI for Devnet:
+     ```bash
+     solana config set --url https://api.devnet.solana.com
+     ```
+   - Generate or use an existing keypair:
+     ```bash
+     solana-keygen new
+     ```
+
 4. **Build the Program**:
-   - Compile the Rust program: `anchor build`.
-   - Output will be in `target/deploy/treasury.so`.
+   - Compile the Rust program:
+     ```bash
+     anchor build
+     ```
+   - The output will be in `target/deploy/treasury_vault.so`.
+
 5. **Run Unit Tests**:
-   - Execute TypeScript tests: `anchor test` (requires a local Solana validator or Devnet connection).
+   - Execute tests using the provided script, which runs TypeScript tests across multiple test folders (`tests/`):
+     ```bash
+     chmod +x run_tests.sh
+     ./run_tests.sh
+     ```
+   - Tests require a local Solana validator (`solana-test-validator`) or a Devnet connection.
+
 6. **Deploy to Devnet**:
-   - Deploy the program: `solana program deploy target/deploy/treasury.so`.
+   - Deploy the program:
+     ```bash
+     solana program deploy target/deploy/treasury_vault.so
+     ```
    - Note the program ID for use in the TypeScript client (`program_client/app.ts`).
 
-### Project Structure
-```
-├── Anchor.toml
-├── Cargo.lock
-├── Cargo.toml
-├── clean.sh
-├── gitignore
-├── package.json
-├── package-lock.json
-├── prettierignore
-├── programs
-│   └── treasury_vault
-│       ├── Cargo.toml
-│       └── src
-│           ├── constants.rs
-│           ├── error.rs
-│           ├── events.rs
-│           ├── instructions
-│           │   ├── add_treasury_user.rs
-│           │   ├── add_whitelisted_recipient.rs
-│           │   ├── cancel_payout.rs
-│           │   ├── deposit.rs
-│           │   ├── deposit_token.rs
-│           │   ├── execute_payout.rs
-│           │   ├── execute_token_payout.rs
-│           │   ├── initialize_treasury.rs
-│           │   ├── mod.rs
-│           │   ├── pause_treasury.rs
-│           │   ├── schedule_payout.rs
-│           │   ├── set_token_gate.rs
-│           │   ├── unpause_treasury.rs
-│           │   ├── update_treasury_config.rs
-│           │   ├── withdraw.rs
-│           │   └── withdraw_token.rs
-│           ├── lib.rs
-│           └── state
-│               ├── audit_log.rs
-│               ├── mod.rs
-│               ├── payout_schedule.rs
-│               ├── token_balance.rs
-│               ├── treasury.rs
-│               ├── treasury_user.rs
-│               └── whitelisted_recipient.rs
-├── README.md
-├── results.txt
-├── run_tests.sh
-├── tests
-│   ├── treasury_vault_edge_cases.ts
-│   ├── treasury_vault_pause_and_limits.ts
-│   ├── treasury_vault_payout.ts
-│   ├── treasury_vault_token_gate.ts
-│   ├── treasury_vault.ts
-│   └── treasury_vault_user_management.ts
-├── tsconfig.json
-└── yarn.lock
-```
+## Project Structure
+- `Anchor.toml`: Anchor configuration file.
+- `Cargo.toml` & `Cargo.lock`: Rust dependency management.
+- `clean.sh`: Script to clean build artifacts.
+- `programs/treasury_vault/`: Rust source code for the treasury vault program.
+- `tests/`: TypeScript unit tests for various functionalities.
+- `run_tests.sh`: Script to execute all unit tests.
+- `program_client/app.ts`: TypeScript client for interacting with the deployed program.
+- `tsconfig.json` & `package.json`: Configuration for TypeScript and Node.js dependencies.
 
 ## Code Generation Prompt
-
 The following CIDL prompt was used on the Código platform to generate the smart contract and client code:
 
-**Prompt Used**:
+**Prompt**:
 ```
 Create a Solana smart contract using the Anchor framework for an on-chain treasury vault to manage SOL and SPL tokens. The program should support treasury initialization, deposits, scheduled payouts (one-time or recurring), role-based permissions (admin/treasurer), spending limits per epoch, recipient whitelisting, token-gated access, pause/unpause functionality, dynamic epoch adjustment, and audit logging. Include comprehensive TypeScript unit tests for all functionality and edge cases.
 ```
 
-
-
 ## Edge Case Testing
-
-The unit tests (`/tests/`) cover the following edge cases to ensure robustness:
+The unit tests in the `tests/` directory cover the following edge cases to ensure robustness:
 - **Initialization**:
   - Invalid epoch duration (e.g., 0 seconds).
   - Non-signer attempting to initialize.
@@ -133,7 +107,7 @@ The unit tests (`/tests/`) cover the following edge cases to ensure robustness:
   - Invalid recipient (not in whitelist, if enforced).
   - Zero-amount or invalid start time.
 - **Payout Execution**:
-  - Attempting to execute before the scheduled time.
+  - Attempting execution before the scheduled time.
   - Exceeding the epoch spending limit.
   - Non-authorized caller attempting execution.
   - Payout to a non-whitelisted recipient.
@@ -148,46 +122,42 @@ The unit tests (`/tests/`) cover the following edge cases to ensure robustness:
   - Spending limit reset before/after epoch boundary.
   - Invalid epoch duration updates.
 
-These tests ensure the program handles errors gracefully and maintains security under various conditions.
+These tests ensure the program handles errors securely and gracefully.
 
 ## Extra Creative Features
+To enhance functionality and meet the DevQuest’s imaginativity criterion, the following features were added:
+- **Pause/Unpause Mechanism**:
+  - Admins can pause the treasury to prevent payouts during emergencies (e.g., suspected exploits).
+  - Unpausing requires admin approval for secure recovery.
+- **Audit Logging**:
+  - Logs all actions (deposits, payouts, permission changes) in an on-chain `AuditLog` struct with timestamps and details for transparency.
+- **Dynamic Epoch Adjustment**:
+  - Admins can modify epoch duration (e.g., weekly to monthly) to adapt to governance needs, with validation to prevent invalid durations.
+- **Multi-Signature Payout Approval** (Optional):
+  - Extends the treasurer role to require multiple approvals for high-value payouts, enhancing security.
 
-To enhance the treasury’s functionality and align with the DevQuest’s imaginativity criterion, the following features were added:
-1. **Pause/Unpause Mechanism**:
-   - Admins can pause the treasury to prevent payouts during emergencies (e.g., suspected exploits).
-   - Unpausing requires admin approval, ensuring secure recovery.
-2. **Audit Logging**:
-   - All actions (deposits, payouts, permission changes) are logged in an on-chain `AuditLog` struct with timestamps and details.
-   - Enables transparency for DAO members or community audits.
-3. **Dynamic Epoch Adjustment**:
-   - Admins can update the epoch duration (e.g., from weekly to monthly) to adapt to governance needs.
-   - Includes validation to prevent overly short or long epochs.
-4. **Multi-Signature Payout Approval** (Optional):
-   - Extends the treasurer role to require multiple approvals for high-value payouts, enhancing security.
-
-These features make the treasury more flexible, secure, and appealing for real-world Solana projects like DAOs or community funds.
+These features make the treasury flexible, secure, and suitable for real-world Solana projects like DAOs or community funds.
 
 ## Solana Wallet Address
-
-**Wallet Address**: `9JrvTEYhmiMteeWz7h9XtsFdufYHa5tzJLCSk7C9Fgob`
+**Wallet Address**: 9JrvTEYhmiMteeWz7h9XtsFdufYHa5tzJLCSk7C9Fgob
 
 ## Feedback on Código Platform
-
-Código’s AI code generation was intuitive and saved time by producing accurate Anchor boilerplate. The integrated Solana tools streamlined development, though I encountered a lot issues with debugging complex logic , bigger codebases and also code generation.I solve these problems by making sure Código’s AI understood the pattern and program structure and goals of my programs codebase including the typescript unit tests files and also making sure it followed the same working pattern if it didn't work the code was comprehensively debugged.
+Código’s AI code generation was intuitive, producing accurate Anchor boilerplate and saving development time. The integrated Solana tools streamlined the process, though debugging complex logic and larger codebases posed challenges. These were resolved by ensuring Código’s AI followed the program’s structure, goals, and TypeScript unit test patterns, with thorough debugging when necessary.
 
 ## Usage
-T
-There is no frontend client for now but if youwould like to interact with the deployed program:
-1. Create `program_client/app.ts`  from deployment.
-2. Create and run the client script: `node program_client/app.ts`.
+A frontend client is not currently included. To interact with the deployed program:
+1. Create `program_client/app.ts` after deployment.
+2. Run the client script:
+   ```bash
+   node program_client/app.ts
+   ```
 3. Example interactions:
-   - Initialize: Set up the treasury with an admin, token mint, and spending limit.
-   - Deposit: Transfer SOL or SPL tokens to the treasury.
-   - Schedule Payout: Define a recurring payment to a contributor.
-   - Execute Payout: Process a scheduled payout when conditions are met.
+   - **Initialize**: Set up the treasury with an admin, token mint, and spending limit.
+   - **Deposit**: Transfer SOL or SPL tokens to the treasury.
+   - **Schedule Payout**: Define a recurring payment to a contributor.
+   - **Execute Payout**: Process a scheduled payout when conditions are met.
 
 ## Contributing
-
 This program is designed for reuse by the Solana community. To contribute:
 - Fork the repository and submit pull requests with enhancements.
 - Suggested improvements:
@@ -196,5 +166,4 @@ This program is designed for reuse by the Solana community. To contribute:
   - Advanced audit log querying.
 
 ## License
-
 This project is licensed under the MIT License, making it freely reusable for Solana developers and projects.

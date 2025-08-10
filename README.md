@@ -140,6 +140,9 @@ These features make the treasury flexible, secure, and suitable for real-world S
 
 ## Solana Wallet Address
 **Wallet Address**: 9JrvTEYhmiMteeWz7h9XtsFdufYHa5tzJLCSk7C9Fgob
+## USDC Wallet Address on Solana
+**Wallet Address**: CdnWgXQnj3mBoMyj35oPDStZMBN4TxQesCTcTC3zmdyk
+
 
 ## Feedback on Código Platform
 Código’s AI code generation was intuitive, producing accurate Anchor boilerplate and saving development time. The integrated Solana tools streamlined the process, though debugging complex logic and larger codebases posed challenges. These were resolved by ensuring Código’s AI followed the program’s structure, goals, and TypeScript unit test patterns, with thorough debugging when necessary.

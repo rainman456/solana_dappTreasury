@@ -14,7 +14,7 @@ fi
 test_files=(
   "treasury_vault.ts"
   "treasury_vault_edge_cases.ts"
-  "treasury_vault_payout.ts"
+  "treasury_vault_payout_operations.ts"
   "treasury_vault_user_management.ts"
   "treasury_vault_pause_and_limits.ts"
   "treasury_vault_token_gate.ts"

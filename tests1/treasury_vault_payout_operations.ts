@@ -233,10 +233,149 @@ describe("treasury_vault_payout_operations", () => {
 
   describe("Payout Scheduling", () => {
     it("should schedule a one-time payout", async () => {
-      // Schedule time 1 hour in the future
+  // Schedule time 1 hour in the future
+  const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
+  
+  // Check if the payout schedule already exists
+  try {
+    const existingPayoutSchedule = await program.account.payoutSchedule.fetch(payoutSchedule1PDA);
+    
+    // If it exists and is active, we'll cancel it first
+    if (existingPayoutSchedule.isActive) {
+      await program.methods
+        .cancelPayout()
+        .accounts({
+          authority: admin.publicKey,
+          treasury: treasuryPDA,
+          user: adminUserPDA,
+          recipient: recipient1PDA,
+          payoutSchedule: payoutSchedule1PDA,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([admin])
+        .rpc();
+    }
+  } catch (error) {
+    // If the account doesn't exist, that's fine
+  }
+  
+  // Schedule payout
+  await program.methods
+    .schedulePayout(
+      PAYOUT_AMOUNT,
+      scheduleTime,
+      false, // Not recurring
+      new BN(0), // No recurrence interval
+      new BN(1) // Index 1
+    )
+    .accounts({
+      authority: admin.publicKey,
+      treasury: treasuryPDA,
+      user: adminUserPDA,
+      recipient: recipient1PDA,
+      payoutSchedule: payoutSchedule1PDA,
+      tokenMint: null,
+      tokenProgram: null,
+      systemProgram: anchor.web3.SystemProgram.programId,
+      rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+    })
+    .signers([admin])
+    .rpc();
+  
+  // Verify payout was scheduled
+  const payoutSchedule = await program.account.payoutSchedule.fetch(payoutSchedule1PDA);
+  expect(payoutSchedule.recipient.toString()).to.equal(recipient1.publicKey.toString());
+  expect(payoutSchedule.amount.toString()).to.equal(PAYOUT_AMOUNT.toString());
+  expect(payoutSchedule.scheduleTime.toString()).to.equal(scheduleTime.toString());
+  expect(payoutSchedule.recurring).to.be.false;
+  expect(payoutSchedule.isActive).to.be.true;
+});
+
+    it("should schedule a recurring payout", async () => {
+  // Schedule time 1 hour in the future
+  const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
+  const recurrenceInterval = new BN(86400); // 1 day in seconds
+  
+  // Schedule recurring payout
+  await program.methods
+    .schedulePayout(
+      PAYOUT_AMOUNT,
+      scheduleTime,
+      true, // Recurring
+      recurrenceInterval,
+      new BN(2) // Index 2
+    )
+    .accounts({
+      authority: admin.publicKey,
+      treasury: treasuryPDA,
+      user: adminUserPDA,
+      recipient: recipient1PDA,
+      payoutSchedule: recurringPayoutPDA,
+      tokenMint: null, // Add this line
+      tokenProgram: null, // Add this line
+      systemProgram: anchor.web3.SystemProgram.programId,
+      rent: anchor.web3.SYSVAR_RENT_PUBKEY, // Add this line
+    })
+    .signers([admin])
+    .rpc();
+  
+  // Verify recurring payout was scheduled
+  const payoutSchedule = await program.account.payoutSchedule.fetch(recurringPayoutPDA);
+  expect(payoutSchedule.recipient.toString()).to.equal(recipient1.publicKey.toString());
+  expect(payoutSchedule.amount.toString()).to.equal(PAYOUT_AMOUNT.toString());
+  expect(payoutSchedule.scheduleTime.toString()).to.equal(scheduleTime.toString());
+  expect(payoutSchedule.recurring).to.be.true;
+  expect(payoutSchedule.recurrenceInterval.toString()).to.equal(recurrenceInterval.toString());
+  expect(payoutSchedule.lastExecuted.toString()).to.equal("0");
+  expect(payoutSchedule.isActive).to.be.true;
+});
+
+    it("should schedule a payout for a different recipient", async () => {
+  // Schedule time 1 hour in the future
+  const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
+  
+  // Schedule payout for recipient 2
+  await program.methods
+    .schedulePayout(
+      PAYOUT_AMOUNT,
+      scheduleTime,
+      false, // Not recurring
+      new BN(0), // No recurrence interval
+      new BN(1) // Index 1
+    )
+    .accounts({
+      authority: admin.publicKey,
+      treasury: treasuryPDA,
+      user: adminUserPDA,
+      recipient: recipient2PDA,
+      payoutSchedule: payoutSchedule2PDA,
+      tokenMint: null, // Add this line
+      tokenProgram: null, // Add this line
+      systemProgram: anchor.web3.SystemProgram.programId,
+      rent: anchor.web3.SYSVAR_RENT_PUBKEY, // Add this line
+    })
+    .signers([admin])
+    .rpc();
+  
+  // Verify payout was scheduled
+  const payoutSchedule = await program.account.payoutSchedule.fetch(payoutSchedule2PDA);
+  expect(payoutSchedule.recipient.toString()).to.equal(recipient2.publicKey.toString());
+  expect(payoutSchedule.amount.toString()).to.equal(PAYOUT_AMOUNT.toString());
+  expect(payoutSchedule.scheduleTime.toString()).to.equal(scheduleTime.toString());
+  expect(payoutSchedule.recurring).to.be.false;
+  expect(payoutSchedule.lastExecuted.toString()).to.equal("0");
+  expect(payoutSchedule.isActive).to.be.true;
+});
+  });
+
+  describe("Cancel Payout", () => {
+  it("should allow admin to cancel a scheduled payout", async () => {
+    // First, make sure the payout is scheduled
+    const payoutScheduleAccount = await program.account.payoutSchedule.fetchNullable(payoutSchedule1PDA);
+    if (!payoutScheduleAccount) {
+      // If the payout schedule doesn't exist, schedule it first
       const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
       
-      // Schedule payout
       await program.methods
         .schedulePayout(
           PAYOUT_AMOUNT,
@@ -251,26 +390,115 @@ describe("treasury_vault_payout_operations", () => {
           user: adminUserPDA,
           recipient: recipient1PDA,
           payoutSchedule: payoutSchedule1PDA,
+          tokenMint: null,
+          tokenProgram: null,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        })
+        .signers([admin])
+        .rpc();
+    }
+    
+    // Cancel the payout for recipient 1
+    await program.methods
+      .cancelPayout()
+      .accounts({
+        authority: admin.publicKey,
+        treasury: treasuryPDA,
+        user: adminUserPDA,
+        recipient: recipient1PDA,
+        payoutSchedule: payoutSchedule1PDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+    
+    // Verify payout was cancelled (active = false)
+    const payoutSchedule = await program.account.payoutSchedule.fetch(payoutSchedule1PDA);
+    expect(payoutSchedule.isActive).to.be.false;
+  });
+
+  it("should allow treasurer to cancel a scheduled payout", async () => {
+    // First, make sure the payout is scheduled
+    const payoutScheduleAccount = await program.account.payoutSchedule.fetchNullable(payoutSchedule2PDA);
+    if (!payoutScheduleAccount) {
+      // If the payout schedule doesn't exist, schedule it first
+      const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
+      
+      await program.methods
+        .schedulePayout(
+          PAYOUT_AMOUNT,
+          scheduleTime,
+          false, // Not recurring
+          new BN(0), // No recurrence interval
+          new BN(1) // Index 1
+        )
+        .accounts({
+          authority: admin.publicKey,
+          treasury: treasuryPDA,
+          user: adminUserPDA,
+          recipient: recipient2PDA,
+          payoutSchedule: payoutSchedule2PDA,
+          tokenMint: null,
+          tokenProgram: null,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        })
+        .signers([admin])
+        .rpc();
+    }
+    
+    // Cancel the payout for recipient 2 using treasurer
+    await program.methods
+      .cancelPayout()
+      .accounts({
+        authority: treasurer.publicKey,
+        treasury: treasuryPDA,
+        user: treasurerUserPDA,
+        recipient: recipient2PDA,
+        payoutSchedule: payoutSchedule2PDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([treasurer])
+      .rpc();
+    
+    // Verify payout was cancelled (active = false)
+    const payoutSchedule = await program.account.payoutSchedule.fetch(payoutSchedule2PDA);
+    expect(payoutSchedule.isActive).to.be.false;
+  });
+
+  it("should fail to cancel an already cancelled payout", async () => {
+    try {
+      // Try to cancel an already cancelled payout
+      await program.methods
+        .cancelPayout()
+        .accounts({
+          authority: admin.publicKey,
+          treasury: treasuryPDA,
+          user: adminUserPDA,
+          recipient: recipient1PDA,
+          payoutSchedule: payoutSchedule1PDA,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .signers([admin])
         .rpc();
       
-      // Verify payout was scheduled
-      const payoutSchedule = await program.account.payoutSchedule.fetch(payoutSchedule1PDA);
-      expect(payoutSchedule.recipient.toString()).to.equal(recipient1.publicKey.toString());
-      expect(payoutSchedule.amount.toString()).to.equal(PAYOUT_AMOUNT.toString());
-      expect(payoutSchedule.scheduleTime.toString()).to.equal(scheduleTime.toString());
-      expect(payoutSchedule.recurring).to.be.false;
-      expect(payoutSchedule.isActive).to.be.true;
-    });
+      // Should not reach here
+      expect.fail("Expected error was not thrown");
+    } catch (error: any) {
+      // This should fail because the payout is already cancelled
+      expect(true).to.be.true;
+    }
+  });
 
-    it("should schedule a recurring payout", async () => {
-      // Schedule time 1 hour in the future
+  it("should cancel a recurring payout", async () => {
+    // First, make sure the recurring payout is scheduled
+    const recurringPayoutAccount = await program.account.payoutSchedule.fetchNullable(recurringPayoutPDA);
+    if (!recurringPayoutAccount) {
+      // If the recurring payout doesn't exist, schedule it first
       const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
       const recurrenceInterval = new BN(86400); // 1 day in seconds
       
-      // Schedule recurring payout
       await program.methods
         .schedulePayout(
           PAYOUT_AMOUNT,
@@ -285,142 +513,34 @@ describe("treasury_vault_payout_operations", () => {
           user: adminUserPDA,
           recipient: recipient1PDA,
           payoutSchedule: recurringPayoutPDA,
+          tokenMint: null,
+          tokenProgram: null,
           systemProgram: anchor.web3.SystemProgram.programId,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         })
         .signers([admin])
         .rpc();
-      
-      // Verify recurring payout was scheduled
-      const payoutSchedule = await program.account.payoutSchedule.fetch(recurringPayoutPDA);
-      expect(payoutSchedule.recipient.toString()).to.equal(recipient1.publicKey.toString());
-      expect(payoutSchedule.amount.toString()).to.equal(PAYOUT_AMOUNT.toString());
-      expect(payoutSchedule.scheduleTime.toString()).to.equal(scheduleTime.toString());
-      expect(payoutSchedule.recurring).to.be.true;
-      expect(payoutSchedule.recurrenceInterval.toString()).to.equal(recurrenceInterval.toString());
-      expect(payoutSchedule.lastExecuted.toString()).to.equal("0");
-      expect(payoutSchedule.isActive).to.be.true;
-    });
-
-    it("should schedule a payout for a different recipient", async () => {
-      // Schedule time 1 hour in the future
-      const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
-      
-      // Schedule payout for recipient 2
-      await program.methods
-        .schedulePayout(
-          PAYOUT_AMOUNT,
-          scheduleTime,
-          false, // Not recurring
-          new BN(0), // No recurrence interval
-          new BN(1) // Index 1
-        )
-        .accounts({
-          authority: admin.publicKey,
-          treasury: treasuryPDA,
-          user: adminUserPDA,
-          recipient: recipient2PDA,
-          payoutSchedule: payoutSchedule2PDA,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([admin])
-        .rpc();
-      
-      // Verify payout was scheduled
-      const payoutSchedule = await program.account.payoutSchedule.fetch(payoutSchedule2PDA);
-      expect(payoutSchedule.recipient.toString()).to.equal(recipient2.publicKey.toString());
-      expect(payoutSchedule.amount.toString()).to.equal(PAYOUT_AMOUNT.toString());
-      expect(payoutSchedule.scheduleTime.toString()).to.equal(scheduleTime.toString());
-      expect(payoutSchedule.recurring).to.be.false;
-      expect(payoutSchedule.lastExecuted.toString()).to.equal("0");
-      expect(payoutSchedule.isActive).to.be.true;
-    });
+    }
+    
+    // Cancel the recurring payout
+    await program.methods
+      .cancelPayout()
+      .accounts({
+        authority: admin.publicKey,
+        treasury: treasuryPDA,
+        user: adminUserPDA,
+        recipient: recipient1PDA,
+        payoutSchedule: recurringPayoutPDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+    
+    // Verify recurring payout was cancelled (active = false)
+    const payoutSchedule = await program.account.payoutSchedule.fetch(recurringPayoutPDA);
+    expect(payoutSchedule.isActive).to.be.false;
   });
-
-  describe("Cancel Payout", () => {
-    it("should allow admin to cancel a scheduled payout", async () => {
-      // Cancel the payout for recipient 1
-      await program.methods
-        .cancelPayout()
-        .accounts({
-          authority: admin.publicKey,
-          treasury: treasuryPDA,
-          user: adminUserPDA,
-          recipient: recipient1PDA,
-          payoutSchedule: payoutSchedule1PDA,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([admin])
-        .rpc();
-      
-      // Verify payout was cancelled (active = false)
-      const payoutSchedule = await program.account.payoutSchedule.fetch(payoutSchedule1PDA);
-      expect(payoutSchedule.isActive).to.be.false;
-    });
-
-    it("should allow treasurer to cancel a scheduled payout", async () => {
-      // Cancel the payout for recipient 2 using treasurer
-      await program.methods
-        .cancelPayout()
-        .accounts({
-          authority: treasurer.publicKey,
-          treasury: treasuryPDA,
-          user: treasurerUserPDA,
-          recipient: recipient2PDA,
-          payoutSchedule: payoutSchedule2PDA,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([treasurer])
-        .rpc();
-      
-      // Verify payout was cancelled (active = false)
-      const payoutSchedule = await program.account.payoutSchedule.fetch(payoutSchedule2PDA);
-      expect(payoutSchedule.isActive).to.be.false;
-    });
-
-    it("should fail to cancel an already cancelled payout", async () => {
-      try {
-        // Try to cancel an already cancelled payout
-        await program.methods
-          .cancelPayout()
-          .accounts({
-            authority: admin.publicKey,
-            treasury: treasuryPDA,
-            user: adminUserPDA,
-            recipient: recipient1PDA,
-            payoutSchedule: payoutSchedule1PDA,
-            systemProgram: anchor.web3.SystemProgram.programId,
-          })
-          .signers([admin])
-          .rpc();
-        
-        // Should not reach here
-        expect.fail("Expected error was not thrown");
-      } catch (error: any) {
-        // This should fail because the payout is already cancelled
-        expect(true).to.be.true;
-      }
-    });
-
-    it("should cancel a recurring payout", async () => {
-      // Cancel the recurring payout
-      await program.methods
-        .cancelPayout()
-        .accounts({
-          authority: admin.publicKey,
-          treasury: treasuryPDA,
-          user: adminUserPDA,
-          recipient: recipient1PDA,
-          payoutSchedule: recurringPayoutPDA,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([admin])
-        .rpc();
-      
-      // Verify recurring payout was cancelled (active = false)
-      const payoutSchedule = await program.account.payoutSchedule.fetch(recurringPayoutPDA);
-      expect(payoutSchedule.isActive).to.be.false;
-    });
-  });
+});
 
   describe("Execute Payout", () => {
     // Skip the execute payout test since it requires a separate treasury wallet
@@ -434,81 +554,86 @@ describe("treasury_vault_payout_operations", () => {
     });
 
     it("should fail to execute a cancelled payout", async () => {
-      // Find a new payout schedule PDA
-      const [newPayoutPDA] = await anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("payout"),
-          recipient1.publicKey.toBuffer(),
-          treasuryPDA.toBuffer(),
-          new BN(4).toArrayLike(Buffer, "le", 8), // Index 4
-        ],
-        program.programId
-      );
-      
-      // Schedule time a few seconds in the future
-      const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 5);
-      
-      // Schedule payout
-      await program.methods
-        .schedulePayout(
-          PAYOUT_AMOUNT,
-          scheduleTime,
-          false, // Not recurring
-          new BN(0), // No recurrence interval
-          new BN(4) // Index 4
-        )
-        .accounts({
-          authority: admin.publicKey,
-          treasury: treasuryPDA,
-          user: adminUserPDA,
-          recipient: recipient1PDA,
-          payoutSchedule: newPayoutPDA,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([admin])
-        .rpc();
-      
-      // Cancel the payout
-      await program.methods
-        .cancelPayout()
-        .accounts({
-          authority: admin.publicKey,
-          treasury: treasuryPDA,
-          user: adminUserPDA,
-          recipient: recipient1PDA,
-          payoutSchedule: newPayoutPDA,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([admin])
-        .rpc();
-      
-      // Wait for the schedule time to pass
-      await new Promise(resolve => setTimeout(resolve, 6000));
-      
-      try {
-        // Try to execute the cancelled payout
-        const timestamp = new BN(Math.floor(Date.now() / 1000) - 5); // Use a timestamp in the past
-        
-        await program.methods
-          .executePayout(timestamp)
-          .accounts({
-            authority: admin.publicKey,
-            treasury: treasuryPDA,
-            user: adminUserPDA,
-            recipient: recipient1PDA,
-            payoutSchedule: newPayoutPDA,
-            recipientWallet: recipient1.publicKey,
-            systemProgram: anchor.web3.SystemProgram.programId,
-          })
-          .signers([admin])
-          .rpc();
-        
-        // Should not reach here
-        expect.fail("Expected error was not thrown");
-      } catch (error: any) {
-        // This should fail because the payout is cancelled
-        expect(true).to.be.true;
-      }
-    });
+  // Find a new payout schedule PDA
+  const [newPayoutPDA] = await anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("payout"),
+      recipient1.publicKey.toBuffer(),
+      treasuryPDA.toBuffer(),
+      new BN(4).toArrayLike(Buffer, "le", 8), // Index 4
+    ],
+    program.programId
+  );
+  
+  // Schedule time a few seconds in the future
+  const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 5);
+  
+  // Schedule payout
+  await program.methods
+    .schedulePayout(
+      PAYOUT_AMOUNT,
+      scheduleTime,
+      false, // Not recurring
+      new BN(0), // No recurrence interval
+      new BN(4) // Index 4
+    )
+    .accounts({
+      authority: admin.publicKey,
+      treasury: treasuryPDA,
+      user: adminUserPDA,
+      recipient: recipient1PDA,
+      payoutSchedule: newPayoutPDA,
+      tokenMint: null, // Add this line
+      tokenProgram: null, // Add this line
+      systemProgram: anchor.web3.SystemProgram.programId,
+      rent: anchor.web3.SYSVAR_RENT_PUBKEY, // Add this line
+    })
+    .signers([admin])
+    .rpc();
+  
+  // Cancel the payout
+  await program.methods
+    .cancelPayout()
+    .accounts({
+      authority: admin.publicKey,
+      treasury: treasuryPDA,
+      user: adminUserPDA,
+      recipient: recipient1PDA,
+      payoutSchedule: newPayoutPDA,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([admin])
+    .rpc();
+  
+  // Wait for the schedule time to pass
+  await new Promise(resolve => setTimeout(resolve, 6000));
+  
+  try {
+    // Try to execute the cancelled payout
+    const timestamp = new BN(Math.floor(Date.now() / 1000) - 5); // Use a timestamp in the past
+    
+    await program.methods
+      .executePayout(timestamp)
+      .accounts({
+        authority: admin.publicKey,
+        treasury: treasuryPDA,
+        user: adminUserPDA,
+        recipient: recipient1PDA,
+        payoutSchedule: newPayoutPDA,
+        recipientWallet: recipient1.publicKey,
+        recipientTokenAccount: recipient1.publicKey, // Add this line
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID, // Add this line
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+    
+    // Should not reach here
+    expect.fail("Expected error was not thrown");
+  } catch (error: any) {
+    // This should fail because the payout is cancelled
+    expect(error.message).to.include("PayoutNotActive");
+  }
+});
   });
 });

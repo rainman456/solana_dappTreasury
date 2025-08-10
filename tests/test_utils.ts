@@ -23,8 +23,8 @@ export const TREASURER_ROLE = 1;
 export const USER_ROLE = 2;
 
 // Audit log actions
+export const AUDIT_ACTION_DEPOSIT = 0; // Fixed: Changed from 2 to 0 to match program's AuditAction enum
 export const AUDIT_ACTION_WITHDRAW = 1;
-export const AUDIT_ACTION_DEPOSIT = 2;
 export const AUDIT_ACTION_TOKEN_DEPOSIT = 12;
 export const AUDIT_ACTION_TOKEN_PAYOUT = 13;
 

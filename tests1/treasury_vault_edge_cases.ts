@@ -274,80 +274,82 @@ describe("treasury_vault_edge_cases", () => {
     });
 
     it("should schedule multiple payouts for the same recipient", async () => {
-      // Schedule time 1 hour in the future
-      const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
-      
-      // Find first payout schedule PDA
-      const [payoutSchedule1PDA] = await anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("payout"),
-          recipient1.publicKey.toBuffer(),
-          treasuryPDA.toBuffer(),
-          new BN(1).toArrayLike(Buffer, "le", 8), // Index 1
-        ],
-        program.programId
-      );
-      
-      // Schedule first payout
-      await program.methods
-        .schedulePayout(
-          new BN(100000000), // 0.1 SOL
-          scheduleTime,
-          false, // Not recurring
-          new BN(0), // No recurrence interval
-          new BN(1) // Index 1
-        )
-        .accounts({
-          authority: admin.publicKey,
-          treasury: treasuryPDA,
-          user: adminUserPDA,
-          recipient: recipient1PDA,
-          payoutSchedule: payoutSchedule1PDA,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([admin])
-        .rpc();
-      
-      // Find second payout schedule PDA
-      const [payoutSchedule2PDA] = await anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("payout"),
-          recipient1.publicKey.toBuffer(),
-          treasuryPDA.toBuffer(),
-          new BN(2).toArrayLike(Buffer, "le", 8), // Index 2
-        ],
-        program.programId
-      );
-      
-      // Schedule second payout for the same recipient
-      await program.methods
-        .schedulePayout(
-          new BN(200000000), // 0.2 SOL
-          scheduleTime,
-          false, // Not recurring
-          new BN(0), // No recurrence interval
-          new BN(2) // Index 2
-        )
-        .accounts({
-          authority: admin.publicKey,
-          treasury: treasuryPDA,
-          user: adminUserPDA,
-          recipient: recipient1PDA,
-          payoutSchedule: payoutSchedule2PDA,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([admin])
-        .rpc();
-      
-      // Verify both payouts were scheduled
-      const payoutSchedule1 = await program.account.payoutSchedule.fetch(payoutSchedule1PDA);
-      expect(payoutSchedule1.recipient.toString()).to.equal(recipient1.publicKey.toString());
-      expect(payoutSchedule1.amount.toString()).to.equal("100000000");
-      
-      const payoutSchedule2 = await program.account.payoutSchedule.fetch(payoutSchedule2PDA);
-      expect(payoutSchedule2.recipient.toString()).to.equal(recipient1.publicKey.toString());
-      expect(payoutSchedule2.amount.toString()).to.equal("200000000");
-    });
+    // Schedule time 1 hour in the future
+    const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
+    
+    // Find first payout schedule PDA
+    const [payoutSchedule1PDA] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("payout"),
+        recipient1.publicKey.toBuffer(),
+        treasuryPDA.toBuffer(),
+        new BN(1).toArrayLike(Buffer, "le", 8), // Index 1
+      ],
+      program.programId
+    );
+    
+    // Schedule first payout
+    await program.methods
+      .schedulePayout(
+        new BN(100000000), // 0.1 SOL
+        scheduleTime,
+        false, // Not recurring
+        new BN(0), // No recurrence interval
+        new BN(1) // Index 1
+      )
+      .accounts({
+        authority: admin.publicKey,
+        treasury: treasuryPDA,
+        user: adminUserPDA,
+        recipient: recipient1PDA,
+        payoutSchedule: payoutSchedule1PDA,
+        tokenMint: null, // Explicitly set to null for SOL payouts
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+    
+    // Find second payout schedule PDA
+    const [payoutSchedule2PDA] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("payout"),
+        recipient1.publicKey.toBuffer(),
+        treasuryPDA.toBuffer(),
+        new BN(2).toArrayLike(Buffer, "le", 8), // Index 2
+      ],
+      program.programId
+    );
+    
+    // Schedule second payout for the same recipient
+    await program.methods
+      .schedulePayout(
+        new BN(200000000), // 0.2 SOL
+        scheduleTime,
+        false, // Not recurring
+        new BN(0), // No recurrence interval
+        new BN(2) // Index 2
+      )
+      .accounts({
+        authority: admin.publicKey,
+        treasury: treasuryPDA,
+        user: adminUserPDA,
+        recipient: recipient1PDA,
+        payoutSchedule: payoutSchedule2PDA,
+        tokenMint: null, // Explicitly set to null for SOL payouts
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+    
+    // Verify both payouts were scheduled
+    const payoutSchedule1 = await program.account.payoutSchedule.fetch(payoutSchedule1PDA);
+    expect(payoutSchedule1.recipient.toString()).to.equal(recipient1.publicKey.toString());
+    expect(payoutSchedule1.amount.toString()).to.equal("100000000");
+    
+    const payoutSchedule2 = await program.account.payoutSchedule.fetch(payoutSchedule2PDA);
+    expect(payoutSchedule2.recipient.toString()).to.equal(recipient1.publicKey.toString());
+    expect(payoutSchedule2.amount.toString()).to.equal("200000000");
+  });
 
     it("should fail to execute payout with zero treasury funds", async () => {
       // First, withdraw all funds from treasury
@@ -429,136 +431,138 @@ describe("treasury_vault_edge_cases", () => {
       }
     });
 
-    it("should handle concurrent payout scheduling", async () => {
-      // Deposit funds back to treasury
-      const depositTimestamp = new BN(Math.floor(Date.now() / 1000) - 15);
-      
-      // Find audit log PDA
-      const [auditLogPDA] = await anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("audit"),
-          treasuryPDA.toBuffer(),
-          depositTimestamp.toArrayLike(Buffer, "le", 8),
-          admin.publicKey.toBuffer(),
-        ],
-        program.programId
-      );
-      
-      // Deposit 1 SOL
-      await program.methods
-        .deposit(DEPOSIT_AMOUNT, depositTimestamp)
-        .accounts({
-          treasury: treasuryPDA,
-          auditLog: auditLogPDA,
-          depositor: admin.publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([admin])
-        .rpc();
-      
-      // Schedule time 1 hour in the future
-      const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
-      
-      // Create multiple payout schedules concurrently
-      const numPayouts = 5;
-      const payoutPromises = [];
-      
-      for (let i = 10; i < 10 + numPayouts; i++) {
-        // Find payout schedule PDA
-        const [payoutSchedulePDA] = await anchor.web3.PublicKey.findProgramAddressSync(
-          [
-            Buffer.from("payout"),
-            recipient1.publicKey.toBuffer(),
-            treasuryPDA.toBuffer(),
-            new BN(i).toArrayLike(Buffer, "le", 8), // Index i
-          ],
-          program.programId
-        );
-        
-        // Schedule payout
-        const payoutPromise = program.methods
-          .schedulePayout(
-            new BN(10000000), // 0.01 SOL
-            scheduleTime,
-            false, // Not recurring
-            new BN(0), // No recurrence interval
-            new BN(i) // Index i
-          )
-          .accounts({
-            authority: admin.publicKey,
-            treasury: treasuryPDA,
-            user: adminUserPDA,
-            recipient: recipient1PDA,
-            payoutSchedule: payoutSchedulePDA,
-            systemProgram: anchor.web3.SystemProgram.programId,
-          })
-          .signers([admin])
-          .rpc();
-        
-        payoutPromises.push(payoutPromise);
-      }
-      
-      // Wait for all payouts to be scheduled
-      await Promise.all(payoutPromises);
-      
-      // Verify at least one payout was scheduled successfully
-      const [lastPayoutSchedulePDA] = await anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("payout"),
-          recipient1.publicKey.toBuffer(),
-          treasuryPDA.toBuffer(),
-          new BN(10 + numPayouts - 1).toArrayLike(Buffer, "le", 8), // Last index
-        ],
-        program.programId
-      );
-      
-      const lastPayoutSchedule = await program.account.payoutSchedule.fetch(lastPayoutSchedulePDA);
-      expect(lastPayoutSchedule.recipient.toString()).to.equal(recipient1.publicKey.toString());
-      expect(lastPayoutSchedule.amount.toString()).to.equal("10000000");
-    });
-
-    it("should fail to schedule payout with invalid recurrence interval for recurring payout", async () => {
-      // Schedule time 1 hour in the future
-      const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
-      
+   it("should handle concurrent payout scheduling", async () => {
+    // Deposit funds back to treasury
+    const depositTimestamp = new BN(Math.floor(Date.now() / 1000) - 15);
+    
+    // Find audit log PDA
+    const [auditLogPDA] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("audit"),
+        treasuryPDA.toBuffer(),
+        depositTimestamp.toArrayLike(Buffer, "le", 8),
+        admin.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    
+    // Deposit 1 SOL
+    await program.methods
+      .deposit(DEPOSIT_AMOUNT, depositTimestamp)
+      .accounts({
+        treasury: treasuryPDA,
+        auditLog: auditLogPDA,
+        depositor: admin.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+    
+    // Schedule time 1 hour in the future
+    const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
+    
+    // Create multiple payout schedules concurrently
+    const numPayouts = 5;
+    const payoutPromises = [];
+    
+    for (let i = 10; i < 10 + numPayouts; i++) {
       // Find payout schedule PDA
       const [payoutSchedulePDA] = await anchor.web3.PublicKey.findProgramAddressSync(
         [
           Buffer.from("payout"),
           recipient1.publicKey.toBuffer(),
           treasuryPDA.toBuffer(),
-          new BN(20).toArrayLike(Buffer, "le", 8), // Index 20
+          new BN(i).toArrayLike(Buffer, "le", 8), // Index i
         ],
         program.programId
       );
       
-      try {
-        // Try to schedule recurring payout with zero interval
-        await program.methods
-          .schedulePayout(
-            new BN(100000000), // 0.1 SOL
-            scheduleTime,
-            true, // Recurring
-            new BN(0), // Zero interval (invalid)
-            new BN(20) // Index 20
-          )
-          .accounts({
-            authority: admin.publicKey,
-            treasury: treasuryPDA,
-            user: adminUserPDA,
-            recipient: recipient1PDA,
-            payoutSchedule: payoutSchedulePDA,
-            systemProgram: anchor.web3.SystemProgram.programId,
-          })
-          .signers([admin])
-          .rpc();
-        
-        // Should not reach here
-        expect.fail("Expected error was not thrown");
-      } catch (error: any) {
-        // This should fail with InvalidRecurrenceInterval
-        expect(error.message).to.include("Error") || expect(error.message).to.include("InvalidRecurrenceInterval");
-      }
-    });
+      // Schedule payout
+      const payoutPromise = program.methods
+        .schedulePayout(
+          new BN(10000000), // 0.01 SOL
+          scheduleTime,
+          false, // Not recurring
+          new BN(0), // No recurrence interval
+          new BN(i) // Index i
+        )
+        .accounts({
+          authority: admin.publicKey,
+          treasury: treasuryPDA,
+          user: adminUserPDA,
+          recipient: recipient1PDA,
+          payoutSchedule: payoutSchedulePDA,
+          tokenMint: null, // Explicitly set to null for SOL payouts
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([admin])
+        .rpc();
+      
+      payoutPromises.push(payoutPromise);
+    }
+    
+    // Wait for all payouts to be scheduled
+    await Promise.all(payoutPromises);
+    
+    // Verify at least one payout was scheduled successfully
+    const [lastPayoutSchedulePDA] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("payout"),
+        recipient1.publicKey.toBuffer(),
+        treasuryPDA.toBuffer(),
+        new BN(10 + numPayouts - 1).toArrayLike(Buffer, "le", 8), // Last index
+      ],
+      program.programId
+    );
+    
+    const lastPayoutSchedule = await program.account.payoutSchedule.fetch(lastPayoutSchedulePDA);
+    expect(lastPayoutSchedule.recipient.toString()).to.equal(recipient1.publicKey.toString());
+    expect(lastPayoutSchedule.amount.toString()).to.equal("10000000");
+  });
+
+     it("should fail to schedule payout with invalid recurrence interval for recurring payout", async () => {
+    // Schedule time 1 hour in the future
+    const scheduleTime = new BN(Math.floor(Date.now() / 1000) + 3600);
+    
+    // Find payout schedule PDA
+    const [payoutSchedulePDA] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("payout"),
+        recipient1.publicKey.toBuffer(),
+        treasuryPDA.toBuffer(),
+        new BN(20).toArrayLike(Buffer, "le", 8), // Index 20
+      ],
+      program.programId
+    );
+    
+    try {
+      // Try to schedule recurring payout with zero interval
+      await program.methods
+        .schedulePayout(
+          new BN(100000000), // 0.1 SOL
+          scheduleTime,
+          true, // Recurring
+          new BN(0), // Zero interval (invalid)
+          new BN(20) // Index 20
+        )
+        .accounts({
+          authority: admin.publicKey,
+          treasury: treasuryPDA,
+          user: adminUserPDA,
+          recipient: recipient1PDA,
+          payoutSchedule: payoutSchedulePDA,
+          tokenMint: null, // Add this line - null for SOL payouts
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([admin])
+        .rpc();
+      
+      // Should not reach here
+      expect.fail("Expected error was not thrown");
+    } catch (error: any) {
+      // This should fail with InvalidRecurrenceInterval
+      expect(error.message).to.include("InvalidRecurrenceInterval");
+    }
+  });
   });
 });

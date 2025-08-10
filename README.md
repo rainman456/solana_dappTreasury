@@ -114,10 +114,10 @@ The following CIDL prompt was used on the Código platform to generate the smart
 
 **Prompt Used**:
 ```
-[Insert the CIDL prompt used to generate the code. Example: "Create a Solana smart contract for an on-chain treasury vault using the Anchor framework to manage SOL and SPL tokens..."]
+Create a Solana smart contract using the Anchor framework for an on-chain treasury vault to manage SOL and SPL tokens. The program should support treasury initialization, deposits, scheduled payouts (one-time or recurring), role-based permissions (admin/treasurer), spending limits per epoch, recipient whitelisting, token-gated access, pause/unpause functionality, dynamic epoch adjustment, and audit logging. Include comprehensive TypeScript unit tests for all functionality and edge cases.
 ```
 
-**Note**: The actual prompt is included in the project’s `treasury.cidl` file and was used to generate complete business logic, including data structures, instructions, error handling, and TypeScript unit tests.
+
 
 ## Edge Case Testing
 
@@ -169,11 +169,11 @@ These features make the treasury more flexible, secure, and appealing for real-w
 
 ## Solana Wallet Address
 
-**Wallet Address**: `[Insert your Solana wallet address here]`
+**Wallet Address**: `9JrvTEYhmiMteeWz7h9XtsFdufYHa5tzJLCSk7C9Fgob`
 
 ## Feedback on Código Platform
 
-[Insert your feedback on the Código platform here. Example: "Código’s AI code generation was intuitive and saved time by producing accurate Anchor boilerplate. The integrated Solana tools streamlined development, though I encountered minor issues with debugging complex logic. Suggestions include improving error messages in the CIDL generator."]
+Código’s AI code generation was intuitive and saved time by producing accurate Anchor boilerplate. The integrated Solana tools streamlined development, though I encountered a lot issues with debugging complex logic , bigger codebases and also code generation.I solve these problems by making sure Código’s AI understood the pattern and program structure and goals of my programs codebase including the typescript unit tests files and also making sure it followed the same working pattern if it didn't work the code was comprehensively debugged.
 
 ## Usage
 T

@@ -6,6 +6,13 @@
 	  "module": "commonjs",
 	  "target": "es6",
 	  "esModuleInterop": true,
-	  "resolveJsonModule": true
-	}
+	  "resolveJsonModule": true,
+	   "baseUrl": ".",
+    "paths": {
+      "test-utils": ["./test_utils"]
+     }
+  },
+  "include": [
+  "./test_utils/**/*"
+  ]
 }
